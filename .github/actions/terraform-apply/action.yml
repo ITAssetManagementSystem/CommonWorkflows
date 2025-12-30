@@ -5,10 +5,6 @@ inputs:
   working_directory:
     description: "Path to terraform root directory"
     required: true
-  environment:
-    description: "Environment name (dev/qa/prod)"
-    required: true
-
 
 runs:
   using: "composite"
@@ -18,8 +14,6 @@ runs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.6.6
 
     - name: Terraform Init
       shell: bash
@@ -28,5 +22,5 @@ runs:
 
     - name: Terraform Apply
       shell: bash
-      run: terraform apply -auto-approve -var-file=${{ inputs.environment }}.tfvars
+      run: terraform apply -auto-approve
       working-directory: ${{ inputs.working_directory }}
