@@ -5,10 +5,6 @@ inputs:
   working_directory:
     description: "Path to terraform root directory"
     required: true
-  environment:
-    description: "Environment name (dev/qa/prod)"
-    required: true
-
 
 runs:
   using: "composite"
@@ -18,16 +14,14 @@ runs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.6.6
 
     - name: Terraform Init
       shell: bash
       run: terraform init
-      working-directory: ${{ inputs.working_directory }}
+      working-directory: ${{ inputs.working_directory }}    
 
     - name: Terraform Validate
-      shell: bash
+      shell: bash    
       run: terraform validate
       working-directory: ${{ inputs.working_directory }}
 
