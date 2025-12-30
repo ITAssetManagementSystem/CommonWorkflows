@@ -16,3 +16,11 @@ runs:
         echo "Message from composite action:"
         echo "${{ inputs.message }}"
         echo "================================"
+
+    - name: Print another message
+      shell: bash
+      run: |
+        echo "================================"
+        echo "Message from another composite action:"
+        echo "${{ inputs.message }}"
+        echo "================================"
