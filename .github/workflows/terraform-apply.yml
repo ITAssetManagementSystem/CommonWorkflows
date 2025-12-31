@@ -55,6 +55,7 @@ jobs:
     name: Production Apply
     runs-on: ubuntu-latest
     needs: plan
+    environment: dev # 🔒 MANUAL APPROVAL HERE
 
     steps:
       - name: Checkout
