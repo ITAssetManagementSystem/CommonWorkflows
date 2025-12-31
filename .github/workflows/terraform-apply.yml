@@ -27,7 +27,8 @@ jobs:
           tenant-id: ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-      - uses: ./.github/actions/terraform-init
+      - name: Terraform Init
+        uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/terraform-init@main
         with:
           tf_dir: ${{ inputs.tf_dir }}
 
@@ -66,7 +67,8 @@ jobs:
           name: tfplan
           path: ${{ inputs.tf_dir }}
 
-      - uses: ./.github/actions/terraform-init
+      - name: Terraform Init
+        uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/terraform-init@main
         with:
           tf_dir: ${{ inputs.tf_dir }}
 

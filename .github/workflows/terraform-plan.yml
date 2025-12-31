@@ -26,11 +26,13 @@ jobs:
                   tenant-id: ${{ secrets.ARM_TENANT_ID }}
                   subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-            - uses: ./.github/actions/terraform-init
+            - name: Terraform Init
+              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/terraform-init@main
               with:
                   tf_dir: ${{ inputs.tf_dir }}
 
-            - uses: ./.github/actions/terraform-validate
+            - name: Terraform Validate
+              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/terraform-validate@main
               with:
                   tf_dir: ${{ inputs.tf_dir }}
 
