@@ -1,0 +1,19 @@
+name: Terraform Init
+description: Install Terraform and run terraform init
+
+inputs:
+  tf_dir:
+    required: true
+    description: Terraform working directory
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Init
+      shell: bash
+      run: |
+        cd ${{ inputs.tf_dir }}
+        terraform init -input=falsel
