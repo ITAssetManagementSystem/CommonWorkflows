@@ -16,4 +16,4 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.tf_dir }}
-        terraform init -input=falsel
+        terraform init -input=false
