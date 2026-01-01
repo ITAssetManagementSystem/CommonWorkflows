@@ -58,8 +58,8 @@ jobs:
             - name: Get AKS Credentials
               run: |
                   az aks get-credentials \
-                    --name aks-prod \
-                    --resource-group rg-prod \
+                    --name dev-aks \
+                    --resource-group dev-rg \
                     --overwrite-existing
 
             - name: Deploy to AKS
