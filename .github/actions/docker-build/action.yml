@@ -1,0 +1,17 @@
+name: Docker Build
+
+inputs:
+  dockerfile_path:
+    required: true
+  image:
+    required: true
+  tag:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run: |
+        docker build \
+          -f ${{ inputs.dockerfile_path }} \
+          -t ${{ inputs.image }}:${{ inputs.tag }} .

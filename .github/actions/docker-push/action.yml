@@ -1,0 +1,14 @@
+name: Docker Push
+inputs:
+  image:
+    required: true
+  tag:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run: |
+        az acr login --name acr
+        docker tag ${{ inputs.image }}:${{ inputs.tag }} acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
+        docker push acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}

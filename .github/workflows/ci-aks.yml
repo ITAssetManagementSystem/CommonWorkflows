@@ -1,0 +1,33 @@
+name: Reusable CI
+
+on:
+    workflow_call:
+        inputs:
+            service_name:
+                type: string
+                required: true
+            dockerfile_path:
+                type: string
+                required: true
+            manifests_path:
+                type: string
+                required: true
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Generate PR Image Tag
+              run: |
+                  SHORT_SHA=${GITHUB_SHA::7}
+                  echo "IMAGE_TAG=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
+
+            - name: Docker Build (PR only)
+              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/docker-build@main
+              with:
+                  dockerfile_path: ${{ inputs.dockerfile_path }}
+                  image: ${{ inputs.service_name }}
+                  tag: ${{ env.IMAGE_TAG }}

@@ -1,0 +1,24 @@
+name: Kubectl Deploy
+inputs:
+  manifests_path:
+    required: true
+  namespace:
+    required: true
+  image:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run: |
+        kubectl create namespace ${{ inputs.namespace }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+
+    - run: |
+        kubectl apply -f ${{ inputs.manifests_path }} -n ${{ inputs.namespace }}
+
+    - run: |
+        kubectl set image deployment \
+          --all \
+          *=${{ inputs.image }} \
+          -n ${{ inputs.namespace }}
