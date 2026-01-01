@@ -15,6 +15,9 @@ on:
             namespace:
                 type: string
                 required: true
+            acr_name:
+                type: string
+                required: true
 
 jobs:
     deploy:
@@ -50,6 +53,7 @@ jobs:
               with:
                   image: ${{ inputs.service_name }}
                   tag: ${{ env.IMAGE_TAG }}
+                  acr_name: ${{ inputs.acr_name }}
 
             - name: Get AKS Credentials
               run: |

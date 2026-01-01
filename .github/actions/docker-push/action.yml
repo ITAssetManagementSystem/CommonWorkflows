@@ -4,6 +4,8 @@ inputs:
     required: true
   tag:
     required: true
+  acr_name:
+    required: true
 
 runs:
   using: composite
@@ -11,7 +13,7 @@ runs:
     - name: Login to ACR
       shell: bash
       run: |
-        az acr login --name acr
+        az acr login --name ${{ inputs.acr_name }}
 
     - name: Tag & Push Image
       shell: bash
