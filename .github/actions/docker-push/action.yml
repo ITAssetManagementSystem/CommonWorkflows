@@ -8,7 +8,15 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: |
+    - name: Login to ACR
+      shell: bash
+      run: |
         az acr login --name acr
-        docker tag ${{ inputs.image }}:${{ inputs.tag }} acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
+
+    - name: Tag & Push Image
+      shell: bash
+      run: |
+        docker tag ${{ inputs.image }}:${{ inputs.tag }} \
+          acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
+
         docker push acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}

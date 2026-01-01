@@ -10,14 +10,20 @@ inputs:
 runs:
   using: composite
   steps:
-    - run: |
+    - name: Ensure Namespace Exists
+      shell: bash
+      run: |
         kubectl create namespace ${{ inputs.namespace }} \
           --dry-run=client -o yaml | kubectl apply -f -
 
-    - run: |
+    - name: Apply Manifests
+      shell: bash
+      run: |
         kubectl apply -f ${{ inputs.manifests_path }} -n ${{ inputs.namespace }}
 
-    - run: |
+    - name: Update Image
+      shell: bash
+      run: |
         kubectl set image deployment \
           --all \
           *=${{ inputs.image }} \
