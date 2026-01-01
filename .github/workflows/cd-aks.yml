@@ -67,4 +67,4 @@ jobs:
               with:
                   manifests_path: ${{ inputs.manifests_path }}
                   namespace: ${{ inputs.namespace }}
-                  image: acr.azurecr.io/${{ inputs.service_name }}:${{ env.IMAGE_TAG }}
+                  image: ${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }}:${{ env.IMAGE_TAG }}

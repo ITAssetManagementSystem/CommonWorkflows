@@ -19,6 +19,6 @@ runs:
       shell: bash
       run: |
         docker tag ${{ inputs.image }}:${{ inputs.tag }} \
-          acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
+          ${{ inputs.acr_name }}.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
 
-        docker push acr.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
+        docker push ${{ inputs.acr_name }}.azurecr.io/${{ inputs.image }}:${{ inputs.tag }}
