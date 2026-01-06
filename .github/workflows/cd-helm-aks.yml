@@ -1,0 +1,91 @@
+name: Reusable CD - Helm AKS
+
+on:
+    workflow_call:
+        inputs:
+            service_name:
+                type: string
+                required: true
+
+            chart_path:
+                type: string
+                required: true
+
+            values_file:
+                type: string
+                required: true
+
+            namespace:
+                type: string
+                required: true
+
+            acr_name:
+                type: string
+                required: true
+
+            aks_name:
+                type: string
+                required: true
+
+            resource_group:
+                type: string
+                required: true
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        permissions:
+            id-token: write
+            contents: read
+
+        steps:
+            # =========================
+            # Checkout
+            # =========================
+            - uses: actions/checkout@v4
+
+            # =========================
+            # Azure Login (OIDC)
+            # =========================
+            - name: Azure Login
+              uses: azure/login@v2
+              with:
+                  client-id: ${{ secrets.ARM_CLIENT_ID }}
+                  tenant-id: ${{ secrets.ARM_TENANT_ID }}
+                  subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+            # =========================
+            # Get AKS Credentials
+            # =========================
+            - name: Get AKS Credentials
+              run: |
+                  az aks get-credentials \
+                    --name ${{ inputs.aks_name }} \
+                    --resource-group ${{ inputs.resource_group }} \
+                    --overwrite-existing
+
+            # =========================
+            # Pre-Deploy API Validation
+            # =========================
+            - name: Kubernetes API Dry Run
+              run: |
+                  helm template ${{ inputs.service_name }} \
+                    ${{ inputs.chart_path }} \
+                    -f ${{ inputs.values_file }} \
+                  | kubectl apply --dry-run=server -f -
+
+            # =========================
+            # Helm Upgrade (Atomic)
+            # =========================
+            - name: Helm Upgrade
+              run: |
+                  helm upgrade --install ${{ inputs.service_name }} \
+                    ${{ inputs.chart_path }} \
+                    --namespace ${{ inputs.namespace }} \
+                    --create-namespace \
+                    -f ${{ inputs.values_file }} \
+                    --set image.repository=${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }} \
+                    --set image.tag=${{ github.sha }} \
+                    --atomic \
+                    --wait \
+                    --timeout 5m
