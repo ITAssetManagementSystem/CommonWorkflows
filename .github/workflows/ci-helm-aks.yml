@@ -1,0 +1,108 @@
+name: Reusable PR CI - Helm
+
+on:
+    workflow_call:
+        inputs:
+            service_name:
+                type: string
+                required: true
+
+            dockerfile_path:
+                type: string
+                required: true
+
+            chart_path:
+                type: string
+                required: true
+
+            values_file:
+                type: string
+                required: true
+
+jobs:
+    pr-ci:
+        runs-on: ubuntu-latest
+
+        steps:
+            # =========================
+            # Checkout Code
+            # =========================
+            - uses: actions/checkout@v4
+
+            # =========================
+            # Generate PR Image Tag
+            # =========================
+            - name: Generate PR Image Tag
+              run: |
+                  SHORT_SHA=${GITHUB_SHA::7}
+                  echo "IMAGE_TAG=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
+
+            # =========================
+            # Docker Build Validation (NO PUSH)
+            # =========================
+            - name: Docker Build (Validation Only)
+              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/docker-build@main
+              with:
+                  dockerfile_path: ${{ inputs.dockerfile_path }}
+                  image: ${{ inputs.service_name }}
+                  tag: ${{ env.IMAGE_TAG }}
+
+            # =========================
+            # Install Helm
+            # =========================
+            - name: Install Helm
+              run: |
+                  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+            # =========================
+            # Helm Lint (Chart Sanity)
+            # =========================
+            - name: Helm Lint
+              run: |
+                  helm lint ${{ inputs.chart_path }}
+
+            # =========================
+            # Helm Template (Render Validation)
+            # =========================
+            - name: Helm Template
+              run: |
+                  helm template pr-${{ inputs.service_name }} \
+                    ${{ inputs.chart_path }} \
+                    -f ${{ inputs.values_file }} \
+                    --set image.tag=${{ env.IMAGE_TAG }} \
+                    > rendered.yaml
+
+            # =========================
+            # Install kubeconform
+            # =========================
+            - name: Install kubeconform
+              run: |
+                  curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+                  | tar xz
+                  sudo mv kubeconform /usr/local/bin/
+
+            # =========================
+            # Kubernetes Schema Validation
+            # =========================
+            - name: kubeconform Validation
+              run: |
+                  kubeconform \
+                    -strict \
+                    -ignore-missing-schemas \
+                    -summary \
+                    rendered.yaml
+
+            # =========================
+            # (Optional) Helm Diff – Visibility
+            # =========================
+            - name: Install Helm Diff Plugin
+              run: |
+                  helm plugin install https://github.com/databus23/helm-diff
+
+            - name: Helm Diff (PR Visibility)
+              run: |
+                  helm diff upgrade pr-${{ inputs.service_name }} \
+                    ${{ inputs.chart_path }} \
+                    -f ${{ inputs.values_file }} \
+                    --set image.tag=${{ env.IMAGE_TAG }} \
+                  || true
