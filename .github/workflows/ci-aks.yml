@@ -26,7 +26,7 @@ jobs:
                   echo "IMAGE_TAG=pr-${{ github.event.pull_request.number }}-${SHORT_SHA}" >> $GITHUB_ENV
 
             - name: Docker Build (PR only)
-              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/docker-build@main
+              uses: ./.github/actions/docker-build
               with:
                   dockerfile_path: ${{ inputs.dockerfile_path }}
                   image: ${{ inputs.service_name }}

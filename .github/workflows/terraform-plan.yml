@@ -1,50 +1,50 @@
 name: Reusable Terraform Plan
 
 on:
-    workflow_call:
-        inputs:
-            tf_dir:
-                required: true
-                type: string
+  workflow_call:
+    inputs:
+      tf_dir:
+        required: true
+        type: string
 
 permissions:
-    contents: read
-    id-token: write
+  contents: read
+  id-token: write
 
 jobs:
-    plan:
-        runs-on: ubuntu-latest
+  plan:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            - name: Export ARM variables for Terraform
-              run: |
-                  echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}" >> $GITHUB_ENV
-                  echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}" >> $GITHUB_ENV
-                  echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
-                  echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
+      - name: Export ARM variables for Terraform
+        run: |
+          echo "ARM_CLIENT_ID=${{ secrets.ARM_CLIENT_ID }}" >> $GITHUB_ENV
+          echo "ARM_TENANT_ID=${{ secrets.ARM_TENANT_ID }}" >> $GITHUB_ENV
+          echo "ARM_SUBSCRIPTION_ID=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+          echo "ARM_USE_OIDC=true" >> $GITHUB_ENV
 
-            - name: Azure Login (OIDC)
-              uses: azure/login@v1
-              with:
-                  client-id: ${{ secrets.ARM_CLIENT_ID }}
-                  tenant-id: ${{ secrets.ARM_TENANT_ID }}
-                  subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      - name: Azure Login (OIDC)
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-            - name: Terraform Init
-              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/terraform-init@main
-              with:
-                  tf_dir: ${{ inputs.tf_dir }}
+      - name: Terraform Init
+        uses: ./.github/actions/terraform-init
+        with:
+          tf_dir: ${{ inputs.tf_dir }}
 
-            - name: Terraform Validate
-              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/terraform-validate@main
-              with:
-                  tf_dir: ${{ inputs.tf_dir }}
+      - name: Terraform Validate
+        uses: ./.github/actions/terraform-validate
+        with:
+          tf_dir: ${{ inputs.tf_dir }}
 
-            - name: Terraform Plan
-              shell: bash
-              run: |
-                  cd ${{ inputs.tf_dir }}
-                  terraform plan -no-color
+      - name: Terraform Plan
+        shell: bash
+        run: |
+          cd ${{ inputs.tf_dir }}
+          terraform plan -no-color

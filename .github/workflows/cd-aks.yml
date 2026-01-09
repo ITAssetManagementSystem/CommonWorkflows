@@ -42,14 +42,14 @@ jobs:
                   echo "IMAGE_TAG=${SHORT_SHA}" >> $GITHUB_ENV
 
             - name: Docker Build
-              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/docker-build@main
+              uses: ./.github/actions/docker-build
               with:
                   dockerfile_path: ${{ inputs.dockerfile_path }}
                   image: ${{ inputs.service_name }}
                   tag: ${{ env.IMAGE_TAG }}
 
             - name: Docker Push
-              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/docker-push@main
+              uses: ./.github/actions/docker-push
               with:
                   image: ${{ inputs.service_name }}
                   tag: ${{ env.IMAGE_TAG }}
@@ -63,7 +63,7 @@ jobs:
                     --overwrite-existing
 
             - name: Deploy to AKS
-              uses: ITAssetManagementSystem/CommonWorkflows/.github/actions/kubectl-deploy@main
+              uses: ./.github/actions/kubectl-deploy
               with:
                   manifests_path: ${{ inputs.manifests_path }}
                   namespace: ${{ inputs.namespace }}
