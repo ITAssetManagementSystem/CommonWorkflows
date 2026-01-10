@@ -112,16 +112,35 @@ jobs:
       # =========================
       # Deploy to AKS
       # =========================
-      - name: Deploy to AKS (Helm Upgrade)
+      # - name: Deploy to AKS (Helm Upgrade)
+      #   run: |
+      #     helm upgrade --install ${{ inputs.service_name }} \
+      #       oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.chart_name }} \
+      #       --version ${{ inputs.chart_version }} \
+      #       --namespace ${{ inputs.namespace }} \
+      #       --create-namespace \
+      #       -f ${{ inputs.values_file }} \
+      #       --set image.repository=${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }} \
+      #       --set image.tag=${{ env.IMAGE_TAG }} \
+      #       --atomic \
+      #       --wait \
+      #       --timeout 10m
+
+      # =========================
+      # Update Helm values.yaml
+      # =========================
+      - name: Update image tag in values.yaml
         run: |
-          helm upgrade --install ${{ inputs.service_name }} \
-            oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.chart_name }} \
-            --version ${{ inputs.chart_version }} \
-            --namespace ${{ inputs.namespace }} \
-            --create-namespace \
-            -f ${{ inputs.values_file }} \
-            --set image.repository=${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }} \
-            --set image.tag=${{ env.IMAGE_TAG }} \
-            --atomic \
-            --wait \
-            --timeout 10m
+          yq e '.image.tag = env(IMAGE_TAG)' -i helm/values.yaml
+
+      # =========================
+      # Commit & Push Changes
+      # =========================
+      - name: Commit and Push values.yaml
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add helm/values.yaml
+          git commit -m "deploy(asset-service): ${IMAGE_TAG}"
+          git push
