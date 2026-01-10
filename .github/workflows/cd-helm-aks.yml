@@ -45,7 +45,7 @@ jobs:
 
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     env:
       IMAGE_TAG: ${{ github.sha }}
