@@ -1,4 +1,4 @@
-name: Reusable CD - Helm AKS (OCI)
+name: Reusable CD - Microservice Deploy (Helm + AKS)
 
 on:
   workflow_call:
@@ -7,7 +7,7 @@ on:
         type: string
         required: true
 
-      chart_path:
+      namespace:
         type: string
         required: true
 
@@ -15,7 +15,11 @@ on:
         type: string
         required: true
 
-      namespace:
+      chart_name:
+        type: string
+        default: service
+
+      chart_version:
         type: string
         required: true
 
@@ -45,11 +49,10 @@ jobs:
 
     env:
       IMAGE_TAG: ${{ github.sha }}
-      HELM_CHART_VERSION: 0.1.${{ github.run_number }}
 
     steps:
       # =========================
-      # Checkout
+      # Checkout Code
       # =========================
       - uses: actions/checkout@v4
 
@@ -64,14 +67,14 @@ jobs:
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
       # =========================
-      # ACR Login
+      # Login to ACR
       # =========================
       - name: Login to ACR
         run: |
           az acr login --name ${{ inputs.acr_name }}
 
       # =========================
-      # Docker Build & Push
+      # Build & Push Docker Image
       # =========================
       - name: Build & Push Docker Image
         run: |
@@ -79,32 +82,8 @@ jobs:
             -t ${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }}:${{ env.IMAGE_TAG }} \
             -f ${{ inputs.dockerfile_path }} .
 
-          docker push ${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }}:${{ env.IMAGE_TAG }}
-
-      # =========================
-      # Helm Lint
-      # =========================
-      - name: Helm Lint
-        run: |
-          helm lint ${{ inputs.chart_path }} -f ${{ inputs.values_file }}
-
-      # =========================
-      # Helm Package
-      # =========================
-      - name: Helm Package
-        run: |
-          helm package ${{ inputs.chart_path }} \
-            --version ${{ env.HELM_CHART_VERSION }} \
-            --app-version ${{ env.IMAGE_TAG }}
-
-      # =========================
-      # Push Helm Chart to ACR (OCI)
-      # =========================
-      - name: Push Helm Chart to ACR
-        run: |
-          helm push \
-            ${{ inputs.service_name }}-${{ env.HELM_CHART_VERSION }}.tgz \
-            oci://${{ inputs.acr_name }}.azurecr.io/helm
+          docker push \
+            ${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }}:${{ env.IMAGE_TAG }}
 
       # =========================
       # Get AKS Credentials
@@ -117,13 +96,13 @@ jobs:
             --overwrite-existing
 
       # =========================
-      # Pre-Deploy Validation (OCI)
+      # Pre-deploy Validation
       # =========================
-      - name: Kubernetes API Dry Run
+      - name: Helm Dry Run (Server)
         run: |
           helm template ${{ inputs.service_name }} \
-            oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.service_name }} \
-            --version ${{ env.HELM_CHART_VERSION }} \
+            oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.chart_name }} \
+            --version ${{ inputs.chart_version }} \
             --namespace ${{ inputs.namespace }} \
             -f ${{ inputs.values_file }} \
             --set image.repository=${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }} \
@@ -131,13 +110,13 @@ jobs:
           | kubectl apply --dry-run=server -f -
 
       # =========================
-      # Helm Upgrade (Atomic)
+      # Deploy to AKS
       # =========================
-      - name: Deploy to AKS
+      - name: Deploy to AKS (Helm Upgrade)
         run: |
           helm upgrade --install ${{ inputs.service_name }} \
-            oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.service_name }} \
-            --version ${{ env.HELM_CHART_VERSION }} \
+            oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.chart_name }} \
+            --version ${{ inputs.chart_version }} \
             --namespace ${{ inputs.namespace }} \
             --create-namespace \
             -f ${{ inputs.values_file }} \
