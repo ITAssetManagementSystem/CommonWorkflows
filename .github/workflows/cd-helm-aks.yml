@@ -140,7 +140,12 @@ jobs:
       - name: Create GitOps PR
         run: |
           cd gitops
+
+          git config user.name "gitops-deployer"
+          git config user.email "gitops-deployer@users.noreply.github.com"
+
           git checkout -b deploy/${{ inputs.service_name }}-${IMAGE_TAG}
+
           git add services/${{ inputs.service_name }}/values.yaml
           git commit -m "deploy(${{
             inputs.service_name }}): ${IMAGE_TAG}"
