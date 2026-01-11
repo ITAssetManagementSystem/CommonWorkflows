@@ -45,14 +45,14 @@ jobs:
 
     permissions:
       id-token: write
-      contents: write
+      contents: read # ⛔ no write to service repo
 
     env:
       IMAGE_TAG: ${{ github.sha }}
 
     steps:
       # =========================
-      # Checkout Code
+      # Checkout Service Repo
       # =========================
       - uses: actions/checkout@v4
 
@@ -86,61 +86,67 @@ jobs:
             ${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }}:${{ env.IMAGE_TAG }}
 
       # =========================
-      # Get AKS Credentials
+      # AKS + Helm (INTENTIONALLY KEPT, NOT USED)
       # =========================
-      - name: Get AKS Credentials
-        run: |
-          az aks get-credentials \
-            --name ${{ inputs.aks_name }} \
-            --resource-group ${{ inputs.resource_group }} \
-            --overwrite-existing
-
-      # =========================
-      # Pre-deploy Validation
-      # =========================
-      - name: Helm Dry Run (Server)
-        run: |
-          helm template ${{ inputs.service_name }} \
-            oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.chart_name }} \
-            --version ${{ inputs.chart_version }} \
-            --namespace ${{ inputs.namespace }} \
-            -f ${{ inputs.values_file }} \
-            --set image.repository=${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }} \
-            --set image.tag=${{ env.IMAGE_TAG }} \
-          | kubectl apply --dry-run=server -f -
-
-      # =========================
-      # Deploy to AKS
-      # =========================
-      # - name: Deploy to AKS (Helm Upgrade)
+      # - name: Get AKS Credentials
       #   run: |
-      #     helm upgrade --install ${{ inputs.service_name }} \
+      #     az aks get-credentials \
+      #       --name ${{ inputs.aks_name }} \
+      #       --resource-group ${{ inputs.resource_group }} \
+      #       --overwrite-existing
+
+      # - name: Helm Dry Run (Server)
+      #   run: |
+      #     helm template ${{ inputs.service_name }} \
       #       oci://${{ inputs.acr_name }}.azurecr.io/helm/${{ inputs.chart_name }} \
       #       --version ${{ inputs.chart_version }} \
       #       --namespace ${{ inputs.namespace }} \
-      #       --create-namespace \
       #       -f ${{ inputs.values_file }} \
       #       --set image.repository=${{ inputs.acr_name }}.azurecr.io/${{ inputs.service_name }} \
       #       --set image.tag=${{ env.IMAGE_TAG }} \
-      #       --atomic \
-      #       --wait \
-      #       --timeout 10m
+      #     | kubectl apply --dry-run=server -f -
 
       # =========================
-      # Update Helm values.yaml
+      # Generate GitHub App Token
       # =========================
-      - name: Update image tag in values.yaml
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      # =========================
+      # Clone GitOps Repo
+      # =========================
+      - name: Clone GitOps Repo
         run: |
-          yq e '.image.tag = env(IMAGE_TAG)' -i helm/values.yaml
+          git clone https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ secrets.GITOPS_REPO }}.git gitops
+          cd gitops
 
       # =========================
-      # Commit & Push Changes
+      # Update values.yaml in GitOps Repo
       # =========================
-      - name: Commit and Push values.yaml
+      - name: Update image tag
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          cd gitops
+          yq e '.image.tag = env(IMAGE_TAG)' -i services/${{ inputs.service_name }}/values.yaml
 
-          git add helm/values.yaml
-          git commit -m "deploy(asset-service): ${IMAGE_TAG}"
-          git push
+      # =========================
+      # Create PR to GitOps Repo
+      # =========================
+      - name: Create GitOps PR
+        run: |
+          cd gitops
+          git checkout -b deploy/${{ inputs.service_name }}-${IMAGE_TAG}
+          git add services/${{ inputs.service_name }}/values.yaml
+          git commit -m "deploy(${{
+            inputs.service_name }}): ${IMAGE_TAG}"
+          git push origin deploy/${{ inputs.service_name }}-${IMAGE_TAG}
+
+          gh pr create \
+            --repo ${{ secrets.GITOPS_REPO }} \
+            --title "Deploy ${{ inputs.service_name }} ${IMAGE_TAG}" \
+            --body "Automated image update via CI"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
